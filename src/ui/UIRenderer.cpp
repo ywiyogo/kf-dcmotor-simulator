@@ -16,7 +16,7 @@ UIRenderer::UIRenderer(simulation::SimulationEngined& simulation_engine,
     // Initialize ImPlot context
     ImPlot::CreateContext();
 
-    std::cout << "UIRenderer initialized successfully" << std::endl;
+    std::cout << "UIRenderer initialized successfully\n";
 }
 
 UIRenderer::~UIRenderer() {
@@ -25,7 +25,9 @@ UIRenderer::~UIRenderer() {
 }
 
 void UIRenderer::render(float delta_time) {
-    (void)delta_time; // Suppress unused parameter warning
+    // Update plot animation state
+    update_plot_animation(delta_time);
+
     // Apply theme for this frame
     theme_.apply();
 
@@ -76,7 +78,7 @@ void UIRenderer::render_menu_bar() {
 
         if (ImGui::BeginMenu("Simulation")) {
             if (ImGui::MenuItem("Start", "Space")) {
-                auto result = simulation_engine_.start();
+                auto result = simulation_engine_.start(simulation::SimulationEngine<double>::SimulationMode::REAL_TIME);
                 if (!result) {
                     std::cerr << "Failed to start simulation: " << result.error() << std::endl;
                 }
@@ -162,22 +164,22 @@ void UIRenderer::render_main_docking_space() {
 
         // Create docking space with enhanced styling
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
-        
+
         // Setup initial docking layout if needed
         static bool first_time = true;
         if (first_time) {
             first_time = false;
             setup_initial_docking_layout(dockspace_id);
         }
-        
+
         // Push enhanced docking styles
         ImGui::PushStyleColor(ImGuiCol_Separator, themes::PastelColors::OUTLINE);
         ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, themes::PastelColors::PRIMARY);
         ImGui::PushStyleColor(ImGuiCol_SeparatorActive, themes::PastelColors::PRIMARY_ACCENT);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
-        
+
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
-        
+
         // Pop the enhanced styles
         ImGui::PopStyleVar(1);
         ImGui::PopStyleColor(3);
@@ -196,29 +198,29 @@ void UIRenderer::render_main_docking_space() {
 
 void UIRenderer::setup_initial_docking_layout(ImGuiID dockspace_id) {
     (void)dockspace_id; // Suppress unused parameter warning
-    
+
     // Set up initial window positions and sizes for proper layout
     static bool first_setup = true;
     if (first_setup) {
         first_setup = false;
-        
+
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         float width = viewport->WorkSize.x;
         float height = viewport->WorkSize.y;
         float menu_height = 22.0f; // Account for menu bar
-        
+
         // Left sidebar - Parameters panel (top portion)
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + menu_height), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(width * 0.28f, height * 0.45f), ImGuiCond_FirstUseEver);
-        
-        // Left sidebar - Configuration panel (bottom portion)  
+
+        // Left sidebar - Configuration panel (bottom portion)
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + menu_height + height * 0.45f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(width * 0.28f, height * 0.55f - menu_height), ImGuiCond_FirstUseEver);
-        
+
         // Central - Plots panel
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + width * 0.28f, viewport->WorkPos.y + menu_height), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(width * 0.72f, height * 0.75f), ImGuiCond_FirstUseEver);
-        
+
         // Bottom - Statistics panel
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + width * 0.28f, viewport->WorkPos.y + menu_height + height * 0.75f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(width * 0.72f, height * 0.25f - menu_height), ImGuiCond_FirstUseEver);
@@ -234,7 +236,7 @@ void UIRenderer::render_parameter_panel() {
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + 22), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * 0.28f, viewport->WorkSize.y * 0.45f), ImGuiCond_FirstUseEver);
     }
-    
+
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
     if (ImGui::Begin("⚙ Parameters", nullptr, window_flags)) {
         // Enhanced panel header with background
@@ -307,7 +309,7 @@ void UIRenderer::render_plot_panel() {
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.28f, viewport->WorkPos.y + 22), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * 0.72f, viewport->WorkSize.y * 0.75f), ImGuiCond_FirstUseEver);
     }
-    
+
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar;
     if (ImGui::Begin("📊 Plots", nullptr, window_flags)) {
         // Enhanced menu bar for plot controls
@@ -315,9 +317,9 @@ void UIRenderer::render_plot_panel() {
             ImGui::PushStyleColor(ImGuiCol_Text, themes::PastelColors::SUCCESS);
             ImGui::TextUnformatted("📊 Real-time Plots");
             ImGui::PopStyleColor();
-            
+
             ImGui::Separator();
-            
+
             // Enhanced plot control buttons with styling
             ImGui::PushStyleColor(ImGuiCol_Button, themes::PastelColors::TERTIARY_LIGHT);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, themes::PastelColors::TERTIARY);
@@ -329,25 +331,71 @@ void UIRenderer::render_plot_panel() {
                 // TODO: Implement data export
             }
             ImGui::SameLine();
-            if (ImGui::SmallButton("⏸ Pause")) {
-                // TODO: Implement plot pause
+
+            // Plot animation controls in menu bar
+            const char* play_pause_icon = plot_is_playing_ ? "⏸ Pause" : "▶ Play";
+            if (ImGui::SmallButton(play_pause_icon)) {
+                plot_is_playing_ = !plot_is_playing_;
             }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("⏹ Reset")) {
+                reset_plot_animation();
+            }
+
+            // Animation status in menu bar
+            if (plot_animation_enabled_ && plot_max_time_ > 0.0f) {
+                ImGui::SameLine();
+                ImGui::Text("| %.1fs/%.1fs (%.0f%%)",
+                           plot_playback_time_, plot_max_time_,
+                           (plot_playback_time_ / plot_max_time_ * 100.0f));
+            }
+
             ImGui::PopStyleColor(2);
-            
+
             ImGui::EndMenuBar();
         }
-        
+
         // Get latest simulation data
-        auto data = simulation_engine_.get_data();
-        if (data.empty()) {
+        auto full_data = simulation_engine_.get_data();
+        if (full_data.empty()) {
             ImGui::Spacing();
             ImGui::TextColored(themes::PastelColors::WARNING, "⚠ No data available");
             ImGui::Text("Start simulation to see real-time plots.");
             ImGui::End();
             return;
         }
-        
-        ImGui::Spacing();
+
+        // Update plot time bounds
+        if (plot_max_time_ == 0.0f || full_data.back().time > plot_max_time_) {
+            plot_max_time_ = static_cast<float>(full_data.back().time);
+        }
+
+        // Get animated data for progressive visualization
+        auto data = plot_animation_enabled_ ? get_animated_data(full_data) : full_data;
+
+        // Apply rolling window to data (controlled from configuration panel)
+        if (use_rolling_window_) {
+            // Apply rolling window to data
+            if (!data.empty() && window_duration_ > 0.0f) {
+                double end_time = data.back().time;
+                double start_time = end_time - window_duration_;
+
+                auto it = std::lower_bound(data.begin(), data.end(), start_time,
+                    [](const auto& point, double time) { return point.time < time; });
+
+                if (it != data.end()) {
+                    data.erase(data.begin(), it);
+                }
+            }
+        }
+
+        if (data.empty()) {
+            ImGui::Spacing();
+            ImGui::TextColored(themes::PastelColors::INFO, "⏳ Waiting for data...");
+            ImGui::End();
+            return;
+        }
+
 
         // Prepare data vectors for plotting
         std::vector<double> times, true_positions, estimated_positions, measured_positions;
@@ -374,19 +422,25 @@ void UIRenderer::render_plot_panel() {
             velocity_errors.push_back(point.velocity_error);
         }
 
-        // Position plot
+        // Position plot with improved clarity
         if (ImPlot::BeginPlot("Position vs Time")) {
             ImPlot::SetupAxes("Time [s]", "Position [rad]");
             ImPlot::SetupAxisLimits(ImAxis_X1, times.front(), times.back(), ImGuiCond_Always);
 
-            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[0]);
-            ImPlot::PlotLine("True Position", times.data(), true_positions.data(), times.size());
+            // True position - solid blue line
+            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[0], 2.0f);
+            ImPlot::PlotLine("True Position (Ground Truth)", times.data(), true_positions.data(), times.size());
 
-            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[1]);
-            ImPlot::PlotLine("Estimated Position", times.data(), estimated_positions.data(), times.size());
+            // Estimated position - solid orange line
+            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[1], 2.0f);
+            ImPlot::PlotLine("Kalman Filter Estimate", times.data(), estimated_positions.data(), times.size());
 
-            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[2], 1.0f);
-            ImPlot::PlotScatter("Measured Position", times.data(), measured_positions.data(), times.size());
+            // Measured position - green scatter points with explicit color
+            ImPlot::PushStyleColor(ImPlotCol_MarkerFill, themes::PastelColors::PLOT_COLORS[2]);
+            ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, themes::PastelColors::PLOT_COLORS[2]);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 4.0f, themes::PastelColors::PLOT_COLORS[2], 1.0f, themes::PastelColors::PLOT_COLORS[2]);
+            ImPlot::PlotScatter("Noisy Measurements (Sensor Data)", times.data(), measured_positions.data(), times.size());
+            ImPlot::PopStyleColor(2);
 
             ImPlot::EndPlot();
         }
@@ -405,15 +459,42 @@ void UIRenderer::render_plot_panel() {
             ImPlot::EndPlot();
         }
 
-        // Error plot
-        if (ImPlot::BeginPlot("Estimation Errors")) {
-            ImPlot::SetupAxes("Time [s]", "Error");
+        // Measurement noise plot (to clarify what the green dots represent)
+        if (ImPlot::BeginPlot("Measurement Noise Analysis")) {
+            ImPlot::SetupAxes("Time [s]", "Noise Value [rad]");
             ImPlot::SetupAxisLimits(ImAxis_X1, times.front(), times.back(), ImGuiCond_Always);
 
-            ImPlot::SetNextLineStyle(themes::PastelColors::ERROR);
+            // Calculate actual noise values (measured - true)
+            std::vector<double> measurement_noise;
+            measurement_noise.reserve(data.size());
+            for (const auto& point : data) {
+                measurement_noise.push_back(point.measured_position - point.true_position);
+            }
+
+            // Plot noise as scatter points
+            ImPlot::PushStyleColor(ImPlotCol_MarkerFill, themes::PastelColors::PLOT_COLORS[2]);
+            ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, themes::PastelColors::PLOT_COLORS[2]);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 3.0f, themes::PastelColors::PLOT_COLORS[2], 1.0f, themes::PastelColors::PLOT_COLORS[2]);
+            ImPlot::PlotScatter("Measurement Noise", times.data(), measurement_noise.data(), times.size());
+            ImPlot::PopStyleColor(2);
+
+            // Add zero reference line
+            std::vector<double> zero_line(times.size(), 0.0);
+            ImPlot::SetNextLineStyle(ImVec4{0.5f, 0.5f, 0.5f, 0.8f}, 1.0f);
+            ImPlot::PlotLine("Zero Reference", times.data(), zero_line.data(), times.size());
+
+            ImPlot::EndPlot();
+        }
+
+        // Error plot
+        if (ImPlot::BeginPlot("Estimation Errors")) {
+            ImPlot::SetupAxes("Time [s]", "Error [rad]");
+            ImPlot::SetupAxisLimits(ImAxis_X1, times.front(), times.back(), ImGuiCond_Always);
+
+            ImPlot::SetNextLineStyle(themes::PastelColors::ERROR, 2.0f);
             ImPlot::PlotLine("Position Error", times.data(), position_errors.data(), times.size());
 
-            ImPlot::SetNextLineStyle(themes::PastelColors::WARNING);
+            ImPlot::SetNextLineStyle(themes::PastelColors::WARNING, 2.0f);
             ImPlot::PlotLine("Velocity Error", times.data(), velocity_errors.data(), times.size());
 
             ImPlot::EndPlot();
@@ -431,7 +512,7 @@ void UIRenderer::render_statistics_panel() {
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.28f, viewport->WorkPos.y + 22 + viewport->WorkSize.y * 0.75f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * 0.72f, viewport->WorkSize.y * 0.25f - 22), ImGuiCond_FirstUseEver);
     }
-    
+
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_HorizontalScrollbar;
     if (ImGui::Begin("📈 Statistics", nullptr, window_flags)) {
         // Enhanced panel header with background
@@ -445,7 +526,7 @@ void UIRenderer::render_statistics_panel() {
         ImGui::EndChild();
         ImGui::PopStyleColor();
         ImGui::Spacing();
-        
+
         const auto& stats = simulation_engine_.get_statistics();
 
         // Estimation Performance Section
@@ -501,7 +582,7 @@ void UIRenderer::render_configuration_panel() {
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + 22 + viewport->WorkSize.y * 0.45f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * 0.28f, viewport->WorkSize.y * 0.55f - 22), ImGuiCond_FirstUseEver);
     }
-    
+
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
     if (ImGui::Begin("⚙ Configuration", nullptr, window_flags)) {
         // Enhanced panel header with background
@@ -515,14 +596,113 @@ void UIRenderer::render_configuration_panel() {
         ImGui::EndChild();
         ImGui::PopStyleColor();
         ImGui::Spacing();
-        
+
+        // === SIMULATION CONTROL SECTION ===
+        ImGui::PushStyleColor(ImGuiCol_Text, themes::PastelColors::PRIMARY_DARK);
+        ImGui::Text("🎮 SIMULATION CONTROL");
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Simulation Mode Selection
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SURFACE);
+        if (ImGui::BeginChild("SimMode", ImVec2(0, 100), true)) {
+            ImGui::TextColored(themes::PastelColors::PRIMARY, "⚙ Simulation Mode");
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            static int simulation_mode = 1;  // Default to REAL_TIME for better visualization
+            const char* mode_names[] = { "⚡ Batch (Fast)", "⏱ Real-Time", "🎯 Interactive" };
+
+            if (ImGui::Combo("Mode", &simulation_mode, mode_names, 3)) {
+                // Mode changed - could update config or store for next simulation
+            }
+
+            ImGui::PushStyleColor(ImGuiCol_Button, themes::PastelColors::SUCCESS);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, themes::PastelColors::TERTIARY);
+            if (ImGui::Button("▶ Start with Selected Mode", ImVec2(-1, 0))) {
+                simulation::SimulationEngine<double>::SimulationMode mode;
+                switch(simulation_mode) {
+                    case 0: mode = simulation::SimulationEngine<double>::SimulationMode::BATCH; break;
+                    case 1: mode = simulation::SimulationEngine<double>::SimulationMode::REAL_TIME; break;
+                    case 2: mode = simulation::SimulationEngine<double>::SimulationMode::INTERACTIVE; break;
+                    default: mode = simulation::SimulationEngine<double>::SimulationMode::REAL_TIME; break;
+                }
+                auto result = simulation_engine_.start(mode);
+                if (!result) {
+                    std::cerr << "Failed to start simulation: " << result.error() << std::endl;
+                }
+            }
+            ImGui::PopStyleColor(2);
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+
+        // === VISUALIZATION CONTROL SECTION ===
+        ImGui::PushStyleColor(ImGuiCol_Text, themes::PastelColors::PRIMARY_DARK);
+        ImGui::Text("📊 PLOT VISUALIZATION");
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Plot Animation Controls
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SURFACE);
+        if (ImGui::BeginChild("PlotAnimation", ImVec2(0, 130), true)) {
+            ImGui::TextColored(themes::PastelColors::PRIMARY, "🎬 Animation Controls");
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            ImGui::Checkbox("Enable Animation", &plot_animation_enabled_);
+            ImGui::SameLine();
+            if (ImGui::SmallButton(plot_is_playing_ ? "⏸ Pause" : "▶ Play")) {
+                plot_is_playing_ = !plot_is_playing_;
+            }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("⏹ Reset")) {
+                reset_plot_animation();
+            }
+
+            if (plot_animation_enabled_) {
+                ImGui::SliderFloat("Playback Time", &plot_playback_time_, 0.0f, plot_max_time_, "%.2f s");
+                ImGui::SliderFloat("Speed", &plot_animation_speed_, 0.1f, 5.0f, "%.1fx");
+                ImGui::SliderFloat("Update Rate", &plot_update_rate_, 1.0f, 60.0f, "%.1f Hz");
+            }
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+
+        // Rolling Window Controls
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SURFACE);
+        if (ImGui::BeginChild("RollingWindow", ImVec2(0, 70), true)) {
+            ImGui::TextColored(themes::PastelColors::PRIMARY, "🔄 Rolling Window");
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            ImGui::Checkbox("Enable Rolling Window", &use_rolling_window_);
+            if (use_rolling_window_) {
+                ImGui::SliderFloat("Duration", &window_duration_, 1.0f, 60.0f, "%.1f s");
+            }
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+
+        // === SYSTEM CONFIGURATION SECTION ===
+        ImGui::PushStyleColor(ImGuiCol_Text, themes::PastelColors::PRIMARY_DARK);
+        ImGui::Text("⚙ SYSTEM CONFIGURATION");
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+        ImGui::Spacing();
+
         // Configuration Management Section with enhanced styling
         ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SURFACE);
         if (ImGui::BeginChild("ConfigMgmt", ImVec2(0, 80), true)) {
             ImGui::TextColored(themes::PastelColors::PRIMARY, "💾 Configuration Management");
             ImGui::Separator();
             ImGui::Spacing();
-            
+
             // Enhanced buttons with consistent styling
             ImGui::PushStyleColor(ImGuiCol_Button, themes::PastelColors::PRIMARY);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, themes::PastelColors::PRIMARY_DARK);
@@ -556,7 +736,7 @@ void UIRenderer::render_configuration_panel() {
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
-        
+
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -572,7 +752,7 @@ void UIRenderer::render_configuration_panel() {
             simulation_engine_.set_input_profile(profile);
         }
         ImGui::Unindent();
-        
+
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -590,6 +770,53 @@ void UIRenderer::render_configuration_panel() {
         ImGui::Unindent();
     }
     ImGui::End();
+}
+
+void UIRenderer::update_plot_animation(float delta_time) {
+    plot_accumulated_time_ += delta_time;
+
+    // Control plot update rate
+    float update_interval = 1.0f / plot_update_rate_;
+    if (plot_accumulated_time_ >= update_interval) {
+        plot_accumulated_time_ = 0.0f;
+
+        if (plot_animation_enabled_ && plot_is_playing_ && plot_max_time_ > 0.0f) {
+            plot_playback_time_ += update_interval * plot_animation_speed_;
+
+            // Stop animation when it reaches the end
+            if (plot_playback_time_ > plot_max_time_) {
+                plot_playback_time_ = plot_max_time_;
+                plot_is_playing_ = false;
+            }
+        }
+    }
+}
+
+void UIRenderer::reset_plot_animation() {
+    plot_playback_time_ = 0.0f;
+    plot_is_playing_ = false;
+    plot_data_index_ = 0;
+}
+
+std::vector<simulation::SimulationDataPoint<double>>
+UIRenderer::get_animated_data(const std::vector<simulation::SimulationDataPoint<double>>& full_data) {
+    if (!plot_animation_enabled_ || full_data.empty()) {
+        return full_data;
+    }
+
+    std::vector<simulation::SimulationDataPoint<double>> animated_data;
+    animated_data.reserve(full_data.size());
+
+    // Include all data points up to the current playback time
+    for (const auto& point : full_data) {
+        if (point.time <= plot_playback_time_) {
+            animated_data.push_back(point);
+        } else {
+            break;
+        }
+    }
+
+    return animated_data;
 }
 
 

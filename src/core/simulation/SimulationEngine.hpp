@@ -6,7 +6,6 @@
 #include "../utils/NoiseGenerator.hpp"
 #include "../utils/TimeUtils.hpp"
 #include <vector>
-#include <memory>
 #include <chrono>
 #include <concepts>
 #include <expected>
@@ -96,13 +95,13 @@ public:
     using UpdateCallback = std::function<void(const DataPoint&)>;
     using CompletionCallback = std::function<void(const Statistics&)>;
 
-    enum class SimulationMode {
+    enum class SimulationMode  : std::int8_t {
         REAL_TIME,      // Real-time simulation with timing constraints
         BATCH,          // Fast batch simulation
         INTERACTIVE     // Interactive mode with user control
     };
 
-    enum class InputProfile {
+    enum class InputProfile  : std::int8_t{
         STEP,           // Step input
         RAMP,           // Ramp input
         SINUSOIDAL,     // Sinusoidal input

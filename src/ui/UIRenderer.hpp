@@ -99,6 +99,25 @@ private:
      */
     void render_help_dialog();
 
+    /**
+     * @brief Update plot animation state
+     * @param delta_time Time since last frame in seconds
+     */
+    void update_plot_animation(float delta_time);
+
+    /**
+     * @brief Reset plot animation to beginning
+     */
+    void reset_plot_animation();
+
+    /**
+     * @brief Get filtered data for current animation time
+     * @param full_data Complete simulation data
+     * @return Data points up to current animation time
+     */
+    std::vector<simulation::SimulationDataPoint<double>> 
+    get_animated_data(const std::vector<simulation::SimulationDataPoint<double>>& full_data);
+
     simulation::SimulationEngined& simulation_engine_;
     themes::PastelTheme& theme_;
 
@@ -108,6 +127,23 @@ private:
 
     int window_width_ = 1920;
     int window_height_ = 1080;
+
+    // Plot animation state
+    bool plot_animation_enabled_ = true;
+    bool plot_is_playing_ = false;
+    float plot_playback_time_ = 0.0f;
+    float plot_animation_speed_ = 1.0f;
+    float plot_max_time_ = 0.0f;
+    size_t plot_data_index_ = 0;
+    
+    // Plot update rate control
+    float plot_update_rate_ = 10.0f;  // Hz
+    float plot_last_update_time_ = 0.0f;
+    float plot_accumulated_time_ = 0.0f;
+    
+    // Rolling window controls
+    bool use_rolling_window_ = false;
+    float window_duration_ = 10.0f;  // seconds
 };
 
 } // namespace kf::ui

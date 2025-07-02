@@ -100,7 +100,8 @@ bool handle_keyboard_events(kf::ui::Key key, bool pressed) {
                 if (g_app_state.simulation_engine->is_running()) {
                     g_app_state.simulation_engine->stop();
                 } else {
-                    auto result = g_app_state.simulation_engine->start();
+                    auto result = g_app_state.simulation_engine->start(
+                        kf::simulation::SimulationEngine<double>::SimulationMode::REAL_TIME);
                     if (!result) {
                         std::cerr << "Failed to start simulation: " << result.error() << "\n";
                     }

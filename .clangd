@@ -15,6 +15,7 @@ Diagnostics:
     Remove:
       - modernize-use-trailing-return-type
       - readability-identifier-length
+      - readability-uppercase-literal-suffix
   UnusedIncludes: Strict
 Index:
   Background: Build
