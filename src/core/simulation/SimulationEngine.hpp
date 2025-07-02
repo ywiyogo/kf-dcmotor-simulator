@@ -19,6 +19,57 @@
 namespace kf::simulation {
 
 /**
+ * @brief Configuration constants for simulation engine
+ */
+namespace SimulationConstants {
+    // Default simulation parameters
+    static constexpr double DEFAULT_TIME_STEP = 0.01;              // 100 Hz simulation rate
+    static constexpr double DEFAULT_SIMULATION_DURATION = 30.0;    // 30 seconds
+    static constexpr size_t DEFAULT_MAX_DATA_POINTS = 1000;        // Maximum stored data points
+    static constexpr size_t MIN_DATA_POINTS_FOR_ANALYSIS = 10;     // Minimum points for statistics
+    
+    // Performance thresholds
+    static constexpr double CONVERGENCE_ERROR_THRESHOLD = 0.01;    // Error threshold for convergence
+    static constexpr double STABILITY_THRESHOLD = 0.1;             // Stability metric threshold
+    static constexpr double LOG_LIKELIHOOD_THRESHOLD = -10.0;      // Log-likelihood threshold
+    
+    // Motor configuration defaults
+    static constexpr double DEFAULT_INPUT_VOLTAGE = 12.0;          // Standard 12V operation
+    static constexpr double DEFAULT_STEP_AMPLITUDE = 1.0;          // Step input amplitude
+    
+    // Animation and visualization
+    static constexpr float DEFAULT_ANIMATION_SPEED = 1.0f;         // Normal playback speed
+    static constexpr float MIN_ANIMATION_SPEED = 0.1f;             // Minimum playback speed
+    static constexpr float MAX_ANIMATION_SPEED = 5.0f;             // Maximum playback speed
+    static constexpr float DEFAULT_UPDATE_RATE = 30.0f;            // Hz for visualization updates
+    
+    // Threading and timing
+    static constexpr int MICROSECONDS_PER_SECOND = 1000000;        // Conversion factor
+    static constexpr long FRAME_TIME_60FPS_MICROSEC = 16667;       // ~60 FPS frame time
+    
+    // Signal generation defaults
+    static constexpr double DEFAULT_SINUSOIDAL_FREQUENCY = 0.5;    // Hz
+    static constexpr double DEFAULT_CHIRP_FREQ_START = 0.1;        // Hz
+    static constexpr double DEFAULT_CHIRP_FREQ_END = 2.0;          // Hz
+    static constexpr double DEFAULT_PRBS_PERIOD = 0.5;             // seconds
+    
+    // Noise and seed constants
+    static constexpr unsigned int REPRODUCIBLE_SEED = 12345;       // Fixed seed for testing
+    static constexpr long INTERACTIVE_TIMEOUT_MS = 100;            // Interactive mode timeout
+    
+    // Performance thresholds
+    static constexpr double STABILITY_CONDITION_NUMBER = 1e12;     // Matrix condition number limit
+    static constexpr double CONVERGENCE_ERROR_FACTOR = 0.05;       // 5% error threshold factor
+    
+    // Signal amplitude defaults
+    static constexpr double DEFAULT_STEP_AMPLITUDE_ALT = 12.0;     // Alternative step amplitude
+    static constexpr double DEFAULT_RAMP_AMPLITUDE = 5.0;          // Ramp signal amplitude
+    static constexpr double DEFAULT_SINUSOIDAL_AMPLITUDE = 10.0;   // Sinusoidal amplitude
+    static constexpr double DEFAULT_CHIRP_AMPLITUDE = 8.0;         // Chirp signal amplitude
+    static constexpr double DEFAULT_PRBS_AMPLITUDE = 6.0;          // PRBS signal amplitude
+}
+
+/**
  * @brief Simulation data point containing all relevant information at a time step
  */
 template<std::floating_point T = double>
@@ -161,7 +212,7 @@ public:
         statistics_ = Statistics{};
 
         // Initialize noise generator with reproducible seed for testing
-        noise_generator_.reset(12345); // Fixed seed for reproducible results
+        noise_generator_.reset(SimulationConstants::REPRODUCIBLE_SEED);
     }
 
     /**
@@ -405,7 +456,7 @@ private:
         while (running_.load()) {
             // Wait for external trigger or timeout
             std::unique_lock<std::mutex> lock(simulation_mutex_);
-            simulation_cv_.wait_for(lock, std::chrono::milliseconds(100),
+            simulation_cv_.wait_for(lock, std::chrono::milliseconds(SimulationConstants::INTERACTIVE_TIMEOUT_MS),
                                   [this]() { return !running_.load(); });
             lock.unlock();
 
@@ -516,35 +567,35 @@ private:
     T compute_input_voltage(T time) const {
         switch (input_profile_) {
             case InputProfile::STEP: {
-                T amplitude = input_parameters_.empty() ? T{12} : input_parameters_[0];
-                T step_time = input_parameters_.size() < 2 ? T{1} : input_parameters_[1];
-                return NoiseGen::step_signal(amplitude, step_time, time);
+                T amplitude = input_parameters_.empty() ? T{SimulationConstants::DEFAULT_STEP_AMPLITUDE_ALT} : input_parameters_[0];
+                T duration = input_parameters_.size() < 2 ? T{1} : input_parameters_[1];
+                return (time < duration) ? T{0} : amplitude;
             }
 
             case InputProfile::RAMP: {
-                T slope = input_parameters_.empty() ? T{5} : input_parameters_[0];
-                T start_time = input_parameters_.size() < 2 ? T{0} : input_parameters_[1];
-                return NoiseGen::ramp_signal(slope, start_time, time);
+                T amplitude = input_parameters_.empty() ? T{SimulationConstants::DEFAULT_RAMP_AMPLITUDE} : input_parameters_[0];
+                T duration = input_parameters_.size() < 2 ? T{5} : input_parameters_[1];
+                return (time < duration) ? (amplitude * time / duration) : amplitude;
             }
 
             case InputProfile::SINUSOIDAL: {
-                T amplitude = input_parameters_.empty() ? T{10} : input_parameters_[0];
-                T frequency = input_parameters_.size() < 2 ? T{0.5} : input_parameters_[1];
+                T amplitude = input_parameters_.empty() ? T{SimulationConstants::DEFAULT_SINUSOIDAL_AMPLITUDE} : input_parameters_[0];
+                T frequency = input_parameters_.size() < 2 ? T{SimulationConstants::DEFAULT_SINUSOIDAL_FREQUENCY} : input_parameters_[1];
                 T phase = input_parameters_.size() < 3 ? T{0} : input_parameters_[2];
                 return NoiseGen::deterministic_sinusoidal(amplitude, frequency, phase, time);
             }
 
             case InputProfile::CHIRP: {
-                T amplitude = input_parameters_.empty() ? T{8} : input_parameters_[0];
-                T f0 = input_parameters_.size() < 2 ? T{0.1} : input_parameters_[1];
-                T f1 = input_parameters_.size() < 3 ? T{2.0} : input_parameters_[2];
+                T amplitude = input_parameters_.empty() ? T{SimulationConstants::DEFAULT_CHIRP_AMPLITUDE} : input_parameters_[0];
+                T f0 = input_parameters_.size() < 2 ? T{SimulationConstants::DEFAULT_CHIRP_FREQ_START} : input_parameters_[1];
+                T f1 = input_parameters_.size() < 3 ? T{SimulationConstants::DEFAULT_CHIRP_FREQ_END} : input_parameters_[2];
                 T duration = input_parameters_.size() < 4 ? simulation_duration_ : input_parameters_[3];
                 return NoiseGen::chirp_signal(amplitude, f0, f1, duration, time);
             }
 
             case InputProfile::PRBS: {
-                T amplitude = input_parameters_.empty() ? T{6} : input_parameters_[0];
-                T period = input_parameters_.size() < 2 ? T{0.5} : input_parameters_[1];
+                T amplitude = input_parameters_.empty() ? T{SimulationConstants::DEFAULT_PRBS_AMPLITUDE} : input_parameters_[0];
+                T period = input_parameters_.size() < 2 ? T{SimulationConstants::DEFAULT_PRBS_PERIOD} : input_parameters_[1];
                 return utils::SignalGenerator<T>::prbs_signal(amplitude, period, time);
             }
 
@@ -599,7 +650,7 @@ private:
         // Check convergence
         const auto& kf_stats = kalman_filter_.get_statistics();
         statistics_.filter_converged = kf_stats.is_converged;
-        statistics_.filter_stable = kf_stats.condition_number < T{1e12};
+        statistics_.filter_stable = kf_stats.condition_number < T{SimulationConstants::STABILITY_CONDITION_NUMBER};
     }
 
     /**
@@ -611,7 +662,7 @@ private:
         if (data_points_.empty()) return;
 
         // Compute convergence time
-        T error_threshold = T{0.05} * (statistics_.rmse_position + statistics_.rmse_velocity);
+        T error_threshold = T{SimulationConstants::CONVERGENCE_ERROR_FACTOR} * (statistics_.rmse_position + statistics_.rmse_velocity);
         for (const auto& point : data_points_) {
             if (point.position_error + point.velocity_error < error_threshold) {
                 statistics_.convergence_time = point.time;

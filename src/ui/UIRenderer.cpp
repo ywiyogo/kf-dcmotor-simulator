@@ -10,6 +10,90 @@
 
 namespace kf::ui {
 
+/**
+ * @brief UI Layout and styling constants
+ */
+namespace UIConstants {
+    // Window layout proportions
+    static constexpr float LEFT_PANEL_WIDTH_RATIO = 0.28f;
+    static constexpr float RIGHT_PANEL_WIDTH_RATIO = 0.72f;
+    static constexpr float TOP_PANEL_HEIGHT_RATIO = 0.45f;
+    static constexpr float BOTTOM_PANEL_HEIGHT_RATIO = 0.55f;
+    static constexpr float PLOT_PANEL_HEIGHT_RATIO = 0.75f;
+    static constexpr float STATS_PANEL_HEIGHT_RATIO = 0.25f;
+    
+    // Menu bar and header dimensions
+    static constexpr float MENU_BAR_HEIGHT = 22.0f;
+    static constexpr float PANEL_HEADER_HEIGHT = 35.0f;
+    static constexpr float CHILD_PANEL_BORDER_SIZE = 1.0f;
+    static constexpr float CURSOR_OFFSET_Y = 8.0f;
+    
+    // Animation and plot parameters
+    static constexpr float DEFAULT_ANIMATION_SPEED = 1.0f;
+    static constexpr float MIN_ANIMATION_SPEED = 0.1f;
+    static constexpr float MAX_ANIMATION_SPEED = 5.0f;
+    static constexpr float MIN_UPDATE_RATE = 1.0f;
+    static constexpr float MAX_UPDATE_RATE = 60.0f;
+    static constexpr float DEFAULT_UPDATE_RATE = 10.0f;
+    static constexpr float MIN_WINDOW_DURATION = 1.0f;
+    static constexpr float MAX_WINDOW_DURATION = 60.0f;
+    static constexpr float DEFAULT_WINDOW_DURATION = 10.0f;
+    
+    // Plot styling
+    static constexpr float PLOT_LINE_WIDTH = 2.0f;
+    static constexpr float SCATTER_MARKER_SIZE = 4.0f;
+    static constexpr float NOISE_MARKER_SIZE = 3.0f;
+    static constexpr float MARKER_ALPHA = 1.0f;
+    static constexpr float REFERENCE_LINE_ALPHA = 0.8f;
+    static constexpr float REFERENCE_LINE_WIDTH = 1.0f;
+    
+    // Configuration panel dimensions
+    static constexpr float SIMULATION_MODE_PANEL_HEIGHT = 100.0f;
+    static constexpr float ANIMATION_PANEL_HEIGHT = 130.0f;
+    static constexpr float ROLLING_WINDOW_PANEL_HEIGHT = 70.0f;
+    static constexpr float CONFIG_MGMT_PANEL_HEIGHT = 80.0f;
+    static constexpr float PLOT_EXPLANATION_PANEL_HEIGHT = 60.0f;
+    
+    // Parameter panel constants
+    static constexpr float PROCESS_NOISE_MIN = 0.001f;
+    static constexpr float PROCESS_NOISE_MAX = 1.0f;
+    static constexpr float MEASUREMENT_NOISE_MIN = 0.001f;
+    static constexpr float MEASUREMENT_NOISE_MAX = 1.0f;
+    static constexpr float TIME_STEP_MIN = 0.0001f;
+    static constexpr float TIME_STEP_MAX = 0.1f;
+    static constexpr float VOLTAGE_RANGE_DEFAULT = 48.0f;
+    
+    // UI spacing and alignment
+    static constexpr float LEGEND_TEXT_OFFSET_X = 200.0f;
+    static constexpr ImVec4 REFERENCE_LINE_COLOR = ImVec4{0.5f, 0.5f, 0.5f, 0.8f};
+    
+    // Progress and percentage constants
+    static constexpr float PERCENTAGE_MULTIPLIER = 100.0f;
+    static constexpr float ZERO_THRESHOLD = 0.0f;
+    
+    // Style variables
+    static constexpr float WINDOW_ROUNDING_DISABLED = 0.0f;
+    static constexpr float WINDOW_BORDER_DISABLED = 0.0f;
+    static constexpr ImVec2 WINDOW_PADDING_DISABLED = ImVec2{0.0f, 0.0f};
+    static constexpr ImVec2 FRAME_PADDING_ENHANCED = ImVec2{4.0f, 4.0f};
+    static constexpr ImVec2 DOCKSPACE_SIZE_AUTO = ImVec2{0.0f, 0.0f};
+    static constexpr int STYLE_VAR_COUNT_WINDOW = 3;
+    static constexpr int STYLE_VAR_COUNT_FRAME = 1;
+    static constexpr int STYLE_COLOR_COUNT_SEPARATOR = 3;
+    
+    // Layout calculation helpers
+    static constexpr float LAYOUT_WIDTH_FACTOR_LEFT = 0.28f;
+    static constexpr float LAYOUT_WIDTH_FACTOR_RIGHT = 0.72f;
+    static constexpr float LAYOUT_HEIGHT_FACTOR_TOP = 0.45f;
+    static constexpr float LAYOUT_HEIGHT_FACTOR_BOTTOM = 0.55f;
+    static constexpr float LAYOUT_HEIGHT_FACTOR_PLOT = 0.75f;
+    static constexpr float LAYOUT_HEIGHT_FACTOR_STATS = 0.25f;
+    
+    // Default window dimensions
+    static constexpr int DEFAULT_WINDOW_WIDTH = 1920;
+    static constexpr int DEFAULT_WINDOW_HEIGHT = 1080;
+}
+
 UIRenderer::UIRenderer(simulation::SimulationEngined& simulation_engine,
                       themes::PastelTheme& theme)
     : simulation_engine_(simulation_engine), theme_(theme) {
@@ -135,8 +219,8 @@ void UIRenderer::render_menu_bar() {
 
         // Show progress
         float progress = simulation_engine_.get_progress();
-        if (progress > 0.0f) {
-            ImGui::Text("Progress: %.1f%%", progress * 100.0f);
+        if (progress > UIConstants::ZERO_THRESHOLD) {
+            ImGui::Text("Progress: %.1f%%", progress * UIConstants::PERCENTAGE_MULTIPLIER);
         }
 
         ImGui::EndMainMenuBar();
@@ -155,12 +239,12 @@ void UIRenderer::render_main_docking_space() {
     window_flags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, UIConstants::WINDOW_ROUNDING_DISABLED);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, UIConstants::WINDOW_BORDER_DISABLED);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, UIConstants::WINDOW_PADDING_DISABLED);
 
     if (ImGui::Begin("DockSpace", nullptr, window_flags)) {
-        ImGui::PopStyleVar(3);
+        ImGui::PopStyleVar(UIConstants::STYLE_VAR_COUNT_WINDOW);
 
         // Create docking space with enhanced styling
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
@@ -176,13 +260,13 @@ void UIRenderer::render_main_docking_space() {
         ImGui::PushStyleColor(ImGuiCol_Separator, themes::PastelColors::OUTLINE);
         ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, themes::PastelColors::PRIMARY);
         ImGui::PushStyleColor(ImGuiCol_SeparatorActive, themes::PastelColors::PRIMARY_ACCENT);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, UIConstants::FRAME_PADDING_ENHANCED);
 
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+        ImGui::DockSpace(dockspace_id, UIConstants::DOCKSPACE_SIZE_AUTO, ImGuiDockNodeFlags_None);
 
         // Pop the enhanced styles
-        ImGui::PopStyleVar(1);
-        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(UIConstants::STYLE_VAR_COUNT_FRAME);
+        ImGui::PopStyleColor(UIConstants::STYLE_COLOR_COUNT_SEPARATOR);
 
         // Render panels with proper docking setup
         render_parameter_panel();
@@ -191,7 +275,7 @@ void UIRenderer::render_main_docking_space() {
         render_statistics_panel();
 
     } else {
-        ImGui::PopStyleVar(3);
+        ImGui::PopStyleVar(UIConstants::STYLE_VAR_COUNT_WINDOW);
     }
     ImGui::End();
 }
@@ -207,23 +291,23 @@ void UIRenderer::setup_initial_docking_layout(ImGuiID dockspace_id) {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         float width = viewport->WorkSize.x;
         float height = viewport->WorkSize.y;
-        float menu_height = 22.0f; // Account for menu bar
+        float menu_height = UIConstants::MENU_BAR_HEIGHT;
 
         // Left sidebar - Parameters panel (top portion)
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + menu_height), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(width * 0.28f, height * 0.45f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(width * UIConstants::LAYOUT_WIDTH_FACTOR_LEFT, height * UIConstants::LAYOUT_HEIGHT_FACTOR_TOP), ImGuiCond_FirstUseEver);
 
         // Left sidebar - Configuration panel (bottom portion)
-        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + menu_height + height * 0.45f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(width * 0.28f, height * 0.55f - menu_height), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + menu_height + height * UIConstants::LAYOUT_HEIGHT_FACTOR_TOP), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(width * UIConstants::LAYOUT_WIDTH_FACTOR_LEFT, height * UIConstants::LAYOUT_HEIGHT_FACTOR_BOTTOM - menu_height), ImGuiCond_FirstUseEver);
 
         // Central - Plots panel
-        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + width * 0.28f, viewport->WorkPos.y + menu_height), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(width * 0.72f, height * 0.75f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + width * UIConstants::LAYOUT_WIDTH_FACTOR_LEFT, viewport->WorkPos.y + menu_height), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(width * UIConstants::LAYOUT_WIDTH_FACTOR_RIGHT, height * UIConstants::LAYOUT_HEIGHT_FACTOR_PLOT), ImGuiCond_FirstUseEver);
 
         // Bottom - Statistics panel
-        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + width * 0.28f, viewport->WorkPos.y + menu_height + height * 0.75f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(width * 0.72f, height * 0.25f - menu_height), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + width * UIConstants::LAYOUT_WIDTH_FACTOR_LEFT, viewport->WorkPos.y + menu_height + height * UIConstants::LAYOUT_HEIGHT_FACTOR_PLOT), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(width * UIConstants::LAYOUT_WIDTH_FACTOR_RIGHT, height * UIConstants::LAYOUT_HEIGHT_FACTOR_STATS - menu_height), ImGuiCond_FirstUseEver);
     }
 }
 
@@ -233,17 +317,17 @@ void UIRenderer::render_parameter_panel() {
     if (first_time) {
         first_time = false;
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + 22), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * 0.28f, viewport->WorkSize.y * 0.45f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + UIConstants::MENU_BAR_HEIGHT), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * UIConstants::LEFT_PANEL_WIDTH_RATIO, viewport->WorkSize.y * UIConstants::TOP_PANEL_HEIGHT_RATIO), ImGuiCond_FirstUseEver);
     }
 
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
     if (ImGui::Begin("⚙ Parameters", nullptr, window_flags)) {
         // Enhanced panel header with background
         ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::PRIMARY_LIGHT);
-        if (ImGui::BeginChild("ParamsHeader", ImVec2(0, 35), true, ImGuiWindowFlags_NoScrollbar)) {
+        if (ImGui::BeginChild("ParamsHeader", ImVec2(0, UIConstants::PANEL_HEADER_HEIGHT), true, ImGuiWindowFlags_NoScrollbar)) {
             ImGui::PushStyleColor(ImGuiCol_Text, themes::PastelColors::PRIMARY_DARK);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + UIConstants::CURSOR_OFFSET_Y);
             ImGui::TextUnformatted("⚙ Kalman Filter Parameters");
             ImGui::PopStyleColor();
         }
@@ -255,7 +339,7 @@ void UIRenderer::render_parameter_panel() {
         auto& kalman_params = config.kalman();
 
         float process_noise = static_cast<float>(kalman_params.process_noise_std);
-        if (ImGui::SliderFloat("Process Noise Std", &process_noise, 0.001f, 1.0f, "%.3f")) {
+        if (ImGui::SliderFloat("Process Noise Std", &process_noise, UIConstants::PROCESS_NOISE_MIN, UIConstants::PROCESS_NOISE_MAX, "%.3f")) {
             config.kalman().process_noise_std = process_noise;
             // Update simulation if running
             if (simulation_engine_.is_running()) {
@@ -264,7 +348,7 @@ void UIRenderer::render_parameter_panel() {
         }
 
         float measurement_noise = static_cast<float>(kalman_params.measurement_noise_std);
-        if (ImGui::SliderFloat("Measurement Noise Std", &measurement_noise, 0.001f, 1.0f, "%.3f")) {
+        if (ImGui::SliderFloat("Measurement Noise Std", &measurement_noise, UIConstants::MEASUREMENT_NOISE_MIN, UIConstants::MEASUREMENT_NOISE_MAX, "%.3f")) {
             config.kalman().measurement_noise_std = measurement_noise;
             if (simulation_engine_.is_running()) {
                 simulation_engine_.update_configuration();
@@ -277,7 +361,7 @@ void UIRenderer::render_parameter_panel() {
 
         auto& motor_params = config.motor();
         float voltage_range = static_cast<float>(motor_params.input_voltage_range);
-        if (ImGui::SliderFloat("Voltage Range", &voltage_range, 1.0f, 48.0f, "%.1f V")) {
+        if (ImGui::SliderFloat("Input Voltage Range", &voltage_range, UIConstants::DEFAULT_ANIMATION_SPEED, UIConstants::VOLTAGE_RANGE_DEFAULT, "%.1f V")) {
             config.motor().input_voltage_range = voltage_range;
             if (simulation_engine_.is_running()) {
                 simulation_engine_.update_configuration();
@@ -290,7 +374,7 @@ void UIRenderer::render_parameter_panel() {
 
         auto& sim_params = config.simulation();
         float time_step = static_cast<float>(sim_params.time_step);
-        if (ImGui::SliderFloat("Time Step", &time_step, 0.0001f, 0.1f, "%.4f s")) {
+        if (ImGui::SliderFloat("Time Step", &time_step, UIConstants::TIME_STEP_MIN, UIConstants::TIME_STEP_MAX, "%.4f s")) {
             config.simulation().time_step = time_step;
             if (simulation_engine_.is_running()) {
                 simulation_engine_.update_configuration();
@@ -306,8 +390,8 @@ void UIRenderer::render_plot_panel() {
     if (first_time) {
         first_time = false;
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.28f, viewport->WorkPos.y + 22), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * 0.72f, viewport->WorkSize.y * 0.75f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + (viewport->WorkSize.x * UIConstants::LEFT_PANEL_WIDTH_RATIO), viewport->WorkPos.y + UIConstants::MENU_BAR_HEIGHT), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * UIConstants::RIGHT_PANEL_WIDTH_RATIO, viewport->WorkSize.y * UIConstants::PLOT_PANEL_HEIGHT_RATIO), ImGuiCond_FirstUseEver);
     }
 
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar;
@@ -428,17 +512,17 @@ void UIRenderer::render_plot_panel() {
             ImPlot::SetupAxisLimits(ImAxis_X1, times.front(), times.back(), ImGuiCond_Always);
 
             // True position - solid blue line
-            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[0], 2.0f);
+            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[0], UIConstants::PLOT_LINE_WIDTH);
             ImPlot::PlotLine("True Position (Ground Truth)", times.data(), true_positions.data(), times.size());
 
             // Estimated position - solid orange line
-            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[1], 2.0f);
+            ImPlot::SetNextLineStyle(themes::PastelColors::PLOT_COLORS[1], UIConstants::PLOT_LINE_WIDTH);
             ImPlot::PlotLine("Kalman Filter Estimate", times.data(), estimated_positions.data(), times.size());
 
             // Measured position - green scatter points with explicit color
             ImPlot::PushStyleColor(ImPlotCol_MarkerFill, themes::PastelColors::PLOT_COLORS[2]);
             ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, themes::PastelColors::PLOT_COLORS[2]);
-            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 4.0f, themes::PastelColors::PLOT_COLORS[2], 1.0f, themes::PastelColors::PLOT_COLORS[2]);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, UIConstants::SCATTER_MARKER_SIZE, themes::PastelColors::PLOT_COLORS[2], UIConstants::MARKER_ALPHA, themes::PastelColors::PLOT_COLORS[2]);
             ImPlot::PlotScatter("Noisy Measurements (Sensor Data)", times.data(), measured_positions.data(), times.size());
             ImPlot::PopStyleColor(2);
 
@@ -474,13 +558,13 @@ void UIRenderer::render_plot_panel() {
             // Plot noise as scatter points
             ImPlot::PushStyleColor(ImPlotCol_MarkerFill, themes::PastelColors::PLOT_COLORS[2]);
             ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, themes::PastelColors::PLOT_COLORS[2]);
-            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 3.0f, themes::PastelColors::PLOT_COLORS[2], 1.0f, themes::PastelColors::PLOT_COLORS[2]);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, UIConstants::NOISE_MARKER_SIZE, themes::PastelColors::PLOT_COLORS[2], UIConstants::MARKER_ALPHA, themes::PastelColors::PLOT_COLORS[2]);
             ImPlot::PlotScatter("Measurement Noise", times.data(), measurement_noise.data(), times.size());
             ImPlot::PopStyleColor(2);
 
             // Add zero reference line
             std::vector<double> zero_line(times.size(), 0.0);
-            ImPlot::SetNextLineStyle(ImVec4{0.5f, 0.5f, 0.5f, 0.8f}, 1.0f);
+            ImPlot::SetNextLineStyle(UIConstants::REFERENCE_LINE_COLOR, UIConstants::REFERENCE_LINE_WIDTH);
             ImPlot::PlotLine("Zero Reference", times.data(), zero_line.data(), times.size());
 
             ImPlot::EndPlot();
@@ -491,10 +575,10 @@ void UIRenderer::render_plot_panel() {
             ImPlot::SetupAxes("Time [s]", "Error [rad]");
             ImPlot::SetupAxisLimits(ImAxis_X1, times.front(), times.back(), ImGuiCond_Always);
 
-            ImPlot::SetNextLineStyle(themes::PastelColors::ERROR, 2.0f);
+            ImPlot::SetNextLineStyle(themes::PastelColors::ERROR, UIConstants::PLOT_LINE_WIDTH);
             ImPlot::PlotLine("Position Error", times.data(), position_errors.data(), times.size());
 
-            ImPlot::SetNextLineStyle(themes::PastelColors::WARNING, 2.0f);
+            ImPlot::SetNextLineStyle(themes::PastelColors::WARNING, UIConstants::PLOT_LINE_WIDTH);
             ImPlot::PlotLine("Velocity Error", times.data(), velocity_errors.data(), times.size());
 
             ImPlot::EndPlot();
@@ -509,17 +593,17 @@ void UIRenderer::render_statistics_panel() {
     if (first_time) {
         first_time = false;
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.28f, viewport->WorkPos.y + 22 + viewport->WorkSize.y * 0.75f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * 0.72f, viewport->WorkSize.y * 0.25f - 22), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + (viewport->WorkSize.x * UIConstants::LEFT_PANEL_WIDTH_RATIO), viewport->WorkPos.y + UIConstants::MENU_BAR_HEIGHT + (viewport->WorkSize.y * UIConstants::PLOT_PANEL_HEIGHT_RATIO)), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * UIConstants::RIGHT_PANEL_WIDTH_RATIO, (viewport->WorkSize.y * UIConstants::STATS_PANEL_HEIGHT_RATIO) - UIConstants::MENU_BAR_HEIGHT), ImGuiCond_FirstUseEver);
     }
 
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_HorizontalScrollbar;
     if (ImGui::Begin("📈 Statistics", nullptr, window_flags)) {
         // Enhanced panel header with background
         ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::INFO);
-        if (ImGui::BeginChild("StatsHeader", ImVec2(0, 35), true, ImGuiWindowFlags_NoScrollbar)) {
+        if (ImGui::BeginChild("StatsHeader", ImVec2(0, UIConstants::PANEL_HEADER_HEIGHT), true, ImGuiWindowFlags_NoScrollbar)) {
             ImGui::PushStyleColor(ImGuiCol_Text, themes::PastelColors::TEXT_PRIMARY);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + UIConstants::CURSOR_OFFSET_Y);
             ImGui::TextUnformatted("📈 Performance Statistics");
             ImGui::PopStyleColor();
         }
@@ -579,17 +663,17 @@ void UIRenderer::render_configuration_panel() {
     if (first_time) {
         first_time = false;
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + 22 + viewport->WorkSize.y * 0.45f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * 0.28f, viewport->WorkSize.y * 0.55f - 22), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + UIConstants::MENU_BAR_HEIGHT + (viewport->WorkSize.y * UIConstants::TOP_PANEL_HEIGHT_RATIO)), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x * UIConstants::LEFT_PANEL_WIDTH_RATIO, (viewport->WorkSize.y * UIConstants::BOTTOM_PANEL_HEIGHT_RATIO) - UIConstants::MENU_BAR_HEIGHT), ImGuiCond_FirstUseEver);
     }
 
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
     if (ImGui::Begin("⚙ Configuration", nullptr, window_flags)) {
         // Enhanced panel header with background
         ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SECONDARY_LIGHT);
-        if (ImGui::BeginChild("ConfigHeader", ImVec2(0, 35), true, ImGuiWindowFlags_NoScrollbar)) {
+        if (ImGui::BeginChild("ConfigHeader", ImVec2(0, UIConstants::PANEL_HEADER_HEIGHT), true, ImGuiWindowFlags_NoScrollbar)) {
             ImGui::PushStyleColor(ImGuiCol_Text, themes::PastelColors::SECONDARY_DARK);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + UIConstants::CURSOR_OFFSET_Y);
             ImGui::TextUnformatted("⚙ System Configuration");
             ImGui::PopStyleColor();
         }
@@ -606,7 +690,7 @@ void UIRenderer::render_configuration_panel() {
 
         // Simulation Mode Selection
         ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SURFACE);
-        if (ImGui::BeginChild("SimMode", ImVec2(0, 100), true)) {
+        if (ImGui::BeginChild("SimMode", ImVec2(0, UIConstants::SIMULATION_MODE_PANEL_HEIGHT), true)) {
             ImGui::TextColored(themes::PastelColors::PRIMARY, "⚙ Simulation Mode");
             ImGui::Separator();
             ImGui::Spacing();
@@ -648,7 +732,7 @@ void UIRenderer::render_configuration_panel() {
 
         // Plot Animation Controls
         ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SURFACE);
-        if (ImGui::BeginChild("PlotAnimation", ImVec2(0, 130), true)) {
+        if (ImGui::BeginChild("PlotAnimation", ImVec2(0, UIConstants::ANIMATION_PANEL_HEIGHT), true)) {
             ImGui::TextColored(themes::PastelColors::PRIMARY, "🎬 Animation Controls");
             ImGui::Separator();
             ImGui::Spacing();
@@ -665,8 +749,8 @@ void UIRenderer::render_configuration_panel() {
 
             if (plot_animation_enabled_) {
                 ImGui::SliderFloat("Playback Time", &plot_playback_time_, 0.0f, plot_max_time_, "%.2f s");
-                ImGui::SliderFloat("Speed", &plot_animation_speed_, 0.1f, 5.0f, "%.1fx");
-                ImGui::SliderFloat("Update Rate", &plot_update_rate_, 1.0f, 60.0f, "%.1f Hz");
+                ImGui::SliderFloat("Speed", &plot_animation_speed_, UIConstants::MIN_ANIMATION_SPEED, UIConstants::MAX_ANIMATION_SPEED, "%.1fx");
+                ImGui::SliderFloat("Update Rate", &plot_update_rate_, UIConstants::MIN_UPDATE_RATE, UIConstants::MAX_UPDATE_RATE, "%.1f Hz");
             }
         }
         ImGui::EndChild();
@@ -675,14 +759,14 @@ void UIRenderer::render_configuration_panel() {
 
         // Rolling Window Controls
         ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SURFACE);
-        if (ImGui::BeginChild("RollingWindow", ImVec2(0, 70), true)) {
+        if (ImGui::BeginChild("RollingWindow", ImVec2(0, UIConstants::ROLLING_WINDOW_PANEL_HEIGHT), true)) {
             ImGui::TextColored(themes::PastelColors::PRIMARY, "🔄 Rolling Window");
             ImGui::Separator();
             ImGui::Spacing();
 
             ImGui::Checkbox("Enable Rolling Window", &use_rolling_window_);
             if (use_rolling_window_) {
-                ImGui::SliderFloat("Duration", &window_duration_, 1.0f, 60.0f, "%.1f s");
+                ImGui::SliderFloat("Duration", &window_duration_, UIConstants::MIN_WINDOW_DURATION, UIConstants::MAX_WINDOW_DURATION, "%.1f s");
             }
         }
         ImGui::EndChild();
@@ -698,7 +782,7 @@ void UIRenderer::render_configuration_panel() {
 
         // Configuration Management Section with enhanced styling
         ImGui::PushStyleColor(ImGuiCol_ChildBg, themes::PastelColors::SURFACE);
-        if (ImGui::BeginChild("ConfigMgmt", ImVec2(0, 80), true)) {
+        if (ImGui::BeginChild("ConfigMgmt", ImVec2(0, UIConstants::CONFIG_MGMT_PANEL_HEIGHT), true)) {
             ImGui::TextColored(themes::PastelColors::PRIMARY, "💾 Configuration Management");
             ImGui::Separator();
             ImGui::Spacing();

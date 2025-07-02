@@ -37,10 +37,10 @@ public:
     template<std::floating_point T = double>
     T stop() {
         if (!running_) return T{0};
-        
+
         end_time_ = Clock::now();
         running_ = false;
-        
+
         auto duration = end_time_ - start_time_;
         return std::chrono::duration_cast<std::chrono::duration<T>>(duration).count();
     }
@@ -109,7 +109,7 @@ public:
     bool should_execute() {
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::duration<T>>(now - last_execution_).count();
-        
+
         if (elapsed >= interval_) {
             last_execution_ = now;
             return true;
@@ -199,7 +199,7 @@ public:
     template<std::floating_point T>
     static std::string format_duration(T seconds) {
         std::stringstream ss;
-        
+
         if (seconds < T{0}) {
             ss << "-";
             seconds = -seconds;
@@ -207,7 +207,7 @@ public:
 
         auto hours = static_cast<int>(seconds / T{3600});
         seconds -= hours * T{3600};
-        
+
         auto minutes = static_cast<int>(seconds / T{60});
         seconds -= minutes * T{60};
 
@@ -217,9 +217,9 @@ public:
         if (minutes > 0 || hours > 0) {
             ss << minutes << "m ";
         }
-        
+
         ss << std::fixed << std::setprecision(2) << seconds << "s";
-        
+
         return ss.str();
     }
 
@@ -233,15 +233,15 @@ public:
         auto time_point = std::chrono::system_clock::time_point(
             std::chrono::duration_cast<std::chrono::system_clock::duration>(
                 std::chrono::duration<T>(seconds)));
-        
+
         auto time_t = std::chrono::system_clock::to_time_t(time_point);
         auto subseconds = seconds - std::floor(seconds);
-        
+
         std::stringstream ss;
         ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%dT%H:%M:%S");
         ss << std::fixed << std::setprecision(3) << subseconds;
         ss << "Z";
-        
+
         return ss.str();
     }
 
@@ -253,7 +253,7 @@ public:
     template<std::floating_point T>
     static std::string format_frequency(T frequency_hz) {
         std::stringstream ss;
-        
+
         if (frequency_hz >= T{1e9}) {
             ss << std::fixed << std::setprecision(2) << frequency_hz / T{1e9} << " GHz";
         } else if (frequency_hz >= T{1e6}) {
@@ -267,7 +267,7 @@ public:
         } else {
             ss << std::scientific << std::setprecision(2) << frequency_hz << " Hz";
         }
-        
+
         return ss.str();
     }
 };
@@ -278,7 +278,7 @@ public:
 template<std::floating_point T = double>
 class PeriodicScheduler {
 public:
-    explicit PeriodicScheduler(T period_seconds) 
+    explicit PeriodicScheduler(T period_seconds)
         : period_(period_seconds), next_execution_(RealTimeClock::monotonic_seconds<T>()) {}
 
     /**
@@ -287,17 +287,17 @@ public:
      */
     T wait_for_next() {
         T current_time = RealTimeClock::monotonic_seconds<T>();
-        
+
         if (current_time < next_execution_) {
             T sleep_time = next_execution_ - current_time;
             RealTimeClock::sleep(sleep_time);
             current_time = RealTimeClock::monotonic_seconds<T>();
         }
-        
+
         T actual_period = current_time - last_execution_;
         last_execution_ = current_time;
         next_execution_ = current_time + period_;
-        
+
         return actual_period;
     }
 
@@ -344,7 +344,7 @@ private:
 template<std::floating_point T = double>
 class MovingAverage {
 public:
-    explicit MovingAverage(std::size_t window_size = 10) 
+    explicit MovingAverage(std::size_t window_size = 10)
         : window_size_(window_size) {
         samples_.reserve(window_size);
     }
@@ -366,7 +366,7 @@ public:
      */
     T get_average() const {
         if (samples_.empty()) return T{0};
-        
+
         T sum = T{0};
         for (T sample : samples_) {
             sum += sample;
@@ -380,15 +380,15 @@ public:
      */
     T get_std_dev() const {
         if (samples_.size() < 2) return T{0};
-        
+
         T mean = get_average();
         T variance = T{0};
-        
+
         for (T sample : samples_) {
             T diff = sample - mean;
             variance += diff * diff;
         }
-        
+
         variance /= static_cast<T>(samples_.size() - 1);
         return std::sqrt(variance);
     }

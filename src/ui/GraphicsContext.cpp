@@ -1,7 +1,6 @@
 #include "GraphicsContext.hpp"
 #include <iostream>
 #include <sstream>
-#include <stdexcept>
 
 #include <imgui.h>
 #include <backends/imgui_impl_sdl2.h>
@@ -9,14 +8,14 @@
 
 namespace kf::ui {
 
-GraphicsContext::GraphicsContext(const Config& config) 
+GraphicsContext::GraphicsContext(const Config& config)
     : config_(config) {
     // Get initial timing
     last_frame_time_ = SDL_GetPerformanceCounter();
     fps_last_time_ = last_frame_time_;
 }
 
-GraphicsContext::GraphicsContext() 
+GraphicsContext::GraphicsContext()
     : config_(Config{}) {
     // Get initial timing
     last_frame_time_ = SDL_GetPerformanceCounter();
@@ -27,7 +26,7 @@ GraphicsContext::~GraphicsContext() {
     cleanup();
 }
 
-GraphicsContext::GraphicsContext(GraphicsContext&& other) noexcept 
+GraphicsContext::GraphicsContext(GraphicsContext&& other) noexcept
     : config_(std::move(other.config_))
     , window_(other.window_)
     , renderer_(other.renderer_)
@@ -45,7 +44,7 @@ GraphicsContext::GraphicsContext(GraphicsContext&& other) noexcept
     , fps_(other.fps_)
     , frame_count_(other.frame_count_)
     , fps_last_time_(other.fps_last_time_) {
-    
+
     // Reset moved-from object
     other.window_ = nullptr;
     other.renderer_ = nullptr;
@@ -56,7 +55,7 @@ GraphicsContext& GraphicsContext::operator=(GraphicsContext&& other) noexcept {
     if (this != &other) {
         // Cleanup current resources
         cleanup();
-        
+
         // Move data
         config_ = std::move(other.config_);
         window_ = other.window_;
@@ -75,7 +74,7 @@ GraphicsContext& GraphicsContext::operator=(GraphicsContext&& other) noexcept {
         fps_ = other.fps_;
         frame_count_ = other.frame_count_;
         fps_last_time_ = other.fps_last_time_;
-        
+
         // Reset moved-from object
         other.window_ = nullptr;
         other.renderer_ = nullptr;
@@ -109,7 +108,7 @@ bool GraphicsContext::initialize() {
         }
 
         initialized_ = true;
-        
+
         // Store initial windowed mode settings
         windowed_width_ = config_.width;
         windowed_height_ = config_.height;
@@ -118,7 +117,7 @@ bool GraphicsContext::initialize() {
 
         std::cout << "GraphicsContext: Initialized successfully\n";
         std::cout << "  " << get_renderer_info() << "\n";
-        
+
         return true;
 
     } catch (const std::exception& e) {
@@ -260,7 +259,7 @@ std::string GraphicsContext::get_renderer_info() const {
     std::ostringstream oss;
     oss << "Renderer: " << info.name;
     oss << " | Flags: ";
-    
+
     if (info.flags & SDL_RENDERER_SOFTWARE) oss << "SOFTWARE ";
     if (info.flags & SDL_RENDERER_ACCELERATED) oss << "ACCELERATED ";
     if (info.flags & SDL_RENDERER_PRESENTVSYNC) oss << "VSYNC ";
@@ -391,7 +390,7 @@ Key GraphicsContext::sdl_key_to_key(int sdl_key) {
 bool GraphicsContext::initialize_sdl() {
     // Initialize SDL
     Uint32 init_flags = SDL_INIT_VIDEO | SDL_INIT_TIMER;
-    
+
     if (SDL_Init(init_flags) != 0) {
         std::cerr << "GraphicsContext: SDL_Init failed: " << SDL_GetError() << "\n";
         return false;
@@ -399,7 +398,7 @@ bool GraphicsContext::initialize_sdl() {
 
     // Set SDL hints for better performance and compatibility
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"); // Linear filtering
-    
+
     if (config_.high_dpi) {
         SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "0");
         SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
@@ -411,11 +410,11 @@ bool GraphicsContext::initialize_sdl() {
 bool GraphicsContext::create_window() {
     // Setup window flags
     SDL_WindowFlags window_flags = static_cast<SDL_WindowFlags>(0);
-    
+
     if (config_.resizable) {
         window_flags = static_cast<SDL_WindowFlags>(window_flags | SDL_WINDOW_RESIZABLE);
     }
-    
+
     if (config_.high_dpi) {
         window_flags = static_cast<SDL_WindowFlags>(window_flags | SDL_WINDOW_ALLOW_HIGHDPI);
     }
@@ -441,11 +440,11 @@ bool GraphicsContext::create_window() {
 bool GraphicsContext::create_renderer() {
     // Setup renderer flags
     Uint32 renderer_flags = 0;
-    
+
     if (config_.accelerated) {
         renderer_flags |= SDL_RENDERER_ACCELERATED;
     }
-    
+
     if (config_.vsync) {
         renderer_flags |= SDL_RENDERER_PRESENTVSYNC;
     }
@@ -500,10 +499,10 @@ void GraphicsContext::handle_keyboard_event(const SDL_Event& event) {
         Key key = sdl_key_to_key(event.key.keysym.sym);
         if (key != Key::UNKNOWN) {
             bool handled = keyboard_callback_(
-                key, 
+                key,
                 event.type == SDL_KEYDOWN
             );
-            
+
             // If not handled by callback, process common keys
             if (!handled && event.type == SDL_KEYDOWN) {
                 switch (key) {
@@ -524,11 +523,11 @@ void GraphicsContext::handle_keyboard_event(const SDL_Event& event) {
 void GraphicsContext::update_frame_timing() {
     uint64_t current_time = SDL_GetPerformanceCounter();
     uint64_t frequency = SDL_GetPerformanceFrequency();
-    
+
     // Calculate delta time
     delta_time_ = static_cast<float>(current_time - last_frame_time_) / static_cast<float>(frequency);
     last_frame_time_ = current_time;
-    
+
     // Calculate FPS (update every second)
     frame_count_++;
     if (current_time - fps_last_time_ >= frequency) {

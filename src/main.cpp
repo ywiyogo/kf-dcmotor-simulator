@@ -16,6 +16,31 @@
 #include <thread>
 
 namespace {
+    // Application configuration constants
+    struct AppConstants {
+        // Default window dimensions
+        static constexpr int DEFAULT_WINDOW_WIDTH = 1920;
+        static constexpr int DEFAULT_WINDOW_HEIGHT = 1080;
+        
+        // Default motor parameters
+        static constexpr double DEFAULT_MOTOR_VOLTAGE = 12.0;
+        static constexpr double DEFAULT_STEP_DURATION = 1.0;
+        
+        // Frame rate control
+        static constexpr long FRAME_TIME_60FPS_MICROSEC = 16667;  // ~60 FPS
+        
+        // Color conversion
+        static constexpr int COLOR_MAX_VALUE = 255;
+        
+        // Return codes
+        static constexpr int SUCCESS_EXIT_CODE = 0;
+        static constexpr int FAILURE_EXIT_CODE = -1;
+        
+
+    };
+}
+
+namespace {
     // Application state
     struct AppState {
         std::unique_ptr<kf::ui::GraphicsContext> graphics_context;
@@ -62,7 +87,8 @@ bool initialize_application() {
 
         // Initialize simulation with default input profile
         g_app_state.simulation_engine->set_input_profile(
-            kf::simulation::SimulationEngine<double>::InputProfile::STEP, {12.0, 1.0});
+            kf::simulation::SimulationEngine<double>::InputProfile::STEP, 
+            {AppConstants::DEFAULT_MOTOR_VOLTAGE, AppConstants::DEFAULT_STEP_DURATION});
 
         std::cout << "Application initialized successfully!\n";
         return true;
@@ -146,10 +172,10 @@ void render_frame() {
     // Clear with a nice background color
     const auto& bg_color = kf::ui::themes::PastelColors::BACKGROUND;
     g_app_state.graphics_context->clear(
-        static_cast<uint8_t>(bg_color.x * 255),
-        static_cast<uint8_t>(bg_color.y * 255),
-        static_cast<uint8_t>(bg_color.z * 255),
-        static_cast<uint8_t>(bg_color.w * 255)
+        static_cast<uint8_t>(bg_color.x * AppConstants::COLOR_MAX_VALUE),
+        static_cast<uint8_t>(bg_color.y * AppConstants::COLOR_MAX_VALUE),
+        static_cast<uint8_t>(bg_color.z * AppConstants::COLOR_MAX_VALUE),
+        static_cast<uint8_t>(bg_color.w * AppConstants::COLOR_MAX_VALUE)
     );
 
     // Render ImGui and present
@@ -160,6 +186,10 @@ void render_frame() {
 // Main render loop
 void render_loop() {
 #ifdef __EMSCRIPTEN__
+    // Emscripten-specific constants
+    static constexpr int EMSCRIPTEN_FPS_AUTO = 0;
+    static constexpr int EMSCRIPTEN_SIMULATE_INFINITE_LOOP = 1;
+    
     // For Emscripten, we use the main loop callback
     emscripten_set_main_loop([]() {
         render_frame();
@@ -167,7 +197,7 @@ void render_loop() {
             (g_app_state.ui_renderer && g_app_state.ui_renderer->should_close())) {
             emscripten_cancel_main_loop();
         }
-    }, 0, 1);
+    }, EMSCRIPTEN_FPS_AUTO, EMSCRIPTEN_SIMULATE_INFINITE_LOOP);
 #else
     // Native render loop
     while (!g_app_state.graphics_context->should_close() &&
@@ -175,7 +205,7 @@ void render_loop() {
         render_frame();
 
         // Limit frame rate to reduce CPU usage
-        std::this_thread::sleep_for(std::chrono::microseconds(16667)); // ~60 FPS
+        std::this_thread::sleep_for(std::chrono::microseconds(AppConstants::FRAME_TIME_60FPS_MICROSEC));
     }
 #endif
 }
@@ -239,8 +269,8 @@ int main(int /*argc*/, char* /*argv*/[]) {
     try {
         // Create graphics context configuration
         kf::ui::GraphicsContext::Config graphics_config;
-        graphics_config.width = 1920;
-        graphics_config.height = 1080;
+        graphics_config.width = AppConstants::DEFAULT_WINDOW_WIDTH;
+        graphics_config.height = AppConstants::DEFAULT_WINDOW_HEIGHT;
         graphics_config.title = "Kalman Filter DC Motor Simulation - Modern C++23";
         graphics_config.resizable = true;
         graphics_config.high_dpi = true;
@@ -257,21 +287,21 @@ int main(int /*argc*/, char* /*argv*/[]) {
         // Initialize graphics context
         if (!g_app_state.graphics_context->initialize()) {
             std::cerr << "Failed to initialize graphics context\n";
-            return -1;
+            return AppConstants::FAILURE_EXIT_CODE;
         }
 
         // Initialize ImGui through graphics context
         if (!g_app_state.graphics_context->initialize_imgui()) {
             std::cerr << "Failed to initialize ImGui\n";
             cleanup();
-            return -1;
+            return AppConstants::FAILURE_EXIT_CODE;
         }
 
         // Initialize application
         if (!initialize_application()) {
             std::cerr << "Failed to initialize application\n";
             cleanup();
-            return -1;
+            return AppConstants::FAILURE_EXIT_CODE;
         }
 
         std::cout << "Starting main render loop...\n";
@@ -285,16 +315,16 @@ int main(int /*argc*/, char* /*argv*/[]) {
     } catch (const std::exception& e) {
         std::cerr << "Unhandled exception: " << e.what() << "\n";
         cleanup();
-        return -1;
+        return AppConstants::FAILURE_EXIT_CODE;
     } catch (...) {
         std::cerr << "Unknown exception caught\n";
         cleanup();
-        return -1;
+        return AppConstants::FAILURE_EXIT_CODE;
     }
 
     // Cleanup
     cleanup();
 
     std::cout << "Application exited successfully.\n";
-    return 0;
+    return AppConstants::SUCCESS_EXIT_CODE;
 }
